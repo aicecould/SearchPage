@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>新标签页</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M12 32h36m-14-14 14 14-14 14' fill='none' stroke='%23203338' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M14 16h6m8 0h22M14 32h6m8 0h22M14 48h6m8 0h22' fill='none' stroke='%23203338' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
   <style>
-    :root { font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; color: #203e41; background: #fff; }
+    :root { --accent: #203e41; font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; color: var(--accent); background: #fff; }
     * { box-sizing: border-box; }
     body { min-width: 320px; min-height: 100vh; min-height: 100dvh; margin: 0; overflow: hidden; }
     button, input { font: inherit; }
@@ -19,37 +19,47 @@
     .shade { display: none; }
     .grain { display: none; }
     .page { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; padding: 34px clamp(24px, 5vw, 72px) 30px; }
-    header, footer { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+    header { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
     .top-actions { display: flex; align-items: center; gap: 12px; }
-    .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid rgba(32,62,65,.3); border-radius: 100px; color: #203e41; background: rgba(255,255,255,.86); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 10px 15px; font-size: 12px; font-weight: 600; letter-spacing: .04em; transition: background .2s, border-color .2s, transform .2s; }
-    .text-button:hover { background: #eef3f1; border-color: rgba(32,62,65,.6); transform: translateY(-1px); }
-    .text-button:focus-visible, .engine:focus-visible, .go:focus-visible, .query:focus-visible { outline: 2px solid #203e41; outline-offset: 3px; }
+    .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 100px; color: var(--accent); background: rgba(255,255,255,.86); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 10px 15px; font-size: 12px; font-weight: 600; letter-spacing: .04em; transition: background .2s, border-color .2s, transform .2s; }
+    .text-button:hover { background: color-mix(in srgb, var(--accent) 7%, white); border-color: color-mix(in srgb, var(--accent) 60%, transparent); transform: translateY(-1px); }
+    .text-button:focus-visible, .engine:focus-visible, .go:focus-visible, .settings-button:focus-visible, .settings-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
     .text-button svg { width: 16px; height: 16px; }
     #resetButton { display: none; }
     #resetButton.visible { display: inline-flex; }
+    .settings-dock { position: fixed; z-index: 2; right: clamp(24px, 5vw, 72px); bottom: 30px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .settings-options { display: flex; flex-direction: column; gap: 12px; opacity: 0; visibility: hidden; transform: translateY(12px); pointer-events: none; transition: opacity .22s ease, transform .22s ease, visibility 0s linear .22s; }
+    .settings-dock.open .settings-options { opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto; transition-delay: 0s; }
+    .settings-button, .settings-option { width: 46px; height: 46px; display: grid; place-items: center; border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); border-radius: 50%; box-shadow: 0 6px 22px rgba(7,19,30,.13); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 0; transition: background .2s, color .2s, border-color .2s, transform .2s, box-shadow .2s; }
+    .settings-button { background: rgba(250,250,249,.94); color: var(--accent); }
+    .settings-button:hover { background: color-mix(in srgb, var(--accent) 10%, white); transform: translateY(-2px); }
+    .settings-dock.open .settings-button { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .settings-dock.open .settings-button:hover { background: color-mix(in srgb, var(--accent) 85%, white); }
+    .settings-option { background: rgba(250,250,249,.94); color: var(--accent); }
+    .settings-option:hover { background: color-mix(in srgb, var(--accent) 10%, white); transform: translateY(-2px); box-shadow: 0 9px 24px rgba(7,19,30,.18); }
+    .settings-button svg, .settings-option svg { width: 20px; height: 20px; }
+    .picker-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     main { flex: 1; display: flex; align-items: center; justify-content: center; padding-bottom: 4vh; }
     .search-area { width: min(100%, 740px); animation: arrive .7s cubic-bezier(.2,.8,.2,1) both; }
-    .search-shell { display: flex; align-items: center; width: 100%; height: 78px; padding: 9px; border: 1px solid rgba(255,255,255,.43); border-radius: 21px; background: rgba(250,250,249,.93); box-shadow: 0 20px 60px rgba(7,19,30,.2), 0 3px 10px rgba(7,19,30,.09); color: #1f2b31; transition: box-shadow .2s, transform .2s; }
-    .search-shell:focus-within { box-shadow: 0 25px 70px rgba(7,19,30,.29), 0 0 0 4px rgba(255,255,255,.22); transform: translateY(-2px); }
+    .search-shell { display: flex; align-items: center; width: 100%; height: 64px; padding: 8px; border: 1px solid rgba(255,255,255,.43); border-radius: 18px; background: rgba(250,250,249,.93); box-shadow: 0 20px 60px rgba(7,19,30,.2), 0 3px 10px rgba(7,19,30,.09); color: var(--accent); transition: box-shadow .2s, transform .2s; }
+    .search-shell:focus-within { box-shadow: 0 25px 70px rgba(7,19,30,.29), 0 0 0 1.5px var(--accent); transform: translateY(-2px); }
     .engine-wrap { position: relative; flex: none; }
-    .engine { height: 58px; min-width: 122px; border: 0; border-radius: 13px; background: #e7eae8; color: #273a3c; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 15px; font-size: 13px; font-weight: 700; }
-    .engine:hover { background: #dce1de; }
+    .engine { height: 46px; min-width: 122px; border: 0; border-radius: 13px; background: color-mix(in srgb, var(--accent) 10%, white); color: var(--accent); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 15px; font-size: 13px; font-weight: 700; }
+    .engine:hover { background: color-mix(in srgb, var(--accent) 15%, white); }
     .chevron { width: 14px; height: 14px; transition: transform .2s; }
     .engine[aria-expanded="true"] .chevron { transform: rotate(180deg); }
-    .engine-menu { position: absolute; left: 0; bottom: calc(100% + 13px); width: 180px; padding: 7px; border: 1px solid rgba(255,255,255,.55); border-radius: 15px; background: rgba(248,249,247,.97); box-shadow: 0 16px 42px rgba(9,26,34,.24); color: #263438; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
+    .engine-menu { position: absolute; left: 0; bottom: calc(100% + 13px); width: 180px; padding: 7px; border: 1px solid rgba(255,255,255,.55); border-radius: 15px; background: rgba(248,249,247,.97); box-shadow: 0 16px 42px rgba(9,26,34,.24); color: var(--accent); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
     .engine-menu[hidden] { display: none; }
     .engine-option { width: 100%; display: flex; align-items: center; justify-content: space-between; min-height: 39px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: inherit; text-align: left; font-size: 13px; }
-    .engine-option:hover, .engine-option[aria-selected="true"] { background: #e7ece9; }
-    .engine-option[aria-selected="true"]::after { content: "✓"; color: #38695b; }
-    .query { flex: 1; min-width: 0; height: 100%; padding: 0 20px; border: 0; outline: none; background: transparent; color: #263438; font-size: 17px; font-weight: 400; }
+    .engine-option:hover, .engine-option[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 10%, white); }
+    .engine-option[aria-selected="true"] { font-weight: 700; }
+    .query { flex: 1; min-width: 0; height: 100%; padding: 0 20px; border: 0; outline: none; background: transparent; color: var(--accent); font-size: 17px; font-weight: 400; }
     .query::placeholder { color: #87918f; opacity: 1; }
-    .go { flex: none; width: 56px; height: 56px; display: grid; place-items: center; border: 0; border-radius: 13px; background: #203e41; color: white; transition: background .2s, transform .2s; }
-    .go:hover { background: #315e5c; transform: translateX(2px); }
+    .go { flex: none; width: 46px; height: 46px; display: grid; place-items: center; border: 0; border-radius: 13px; background: var(--accent); color: #fff; transition: background .2s, transform .2s; }
+    .go:hover { background: color-mix(in srgb, var(--accent) 85%, white); transform: translateX(2px); }
     .go svg { width: 21px; height: 21px; }
-    footer { min-height: 20px; }
-    .status { min-height: 18px; color: #203e41; font-size: 12px; text-align: right; }
     @keyframes arrive { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-    @media (max-width: 600px) { .page { padding: 22px 20px; } .text-button { padding: 10px 12px; } .text-button span { display: none; } .search-shell { height: 68px; padding: 7px; border-radius: 17px; } .engine { height: 52px; min-width: 91px; gap: 5px; padding: 0 10px; font-size: 12px; } .query { padding: 0 11px; font-size: 15px; } .go { width: 50px; height: 50px; } }
+    @media (max-width: 600px) { .page { padding: 22px 20px; } .text-button { padding: 10px 12px; } .text-button span { display: none; } .search-shell { height: 60px; padding: 7px; border-radius: 16px; } .engine { height: 44px; min-width: 91px; gap: 5px; padding: 0 10px; font-size: 12px; } .query { padding: 0 11px; font-size: 15px; } .go { width: 44px; height: 44px; } .settings-dock { right: 20px; bottom: 22px; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
   </style>
 </head>
@@ -59,15 +69,13 @@
     <header>
       <div class="top-actions">
         <button class="text-button" id="resetButton" type="button" title="恢复默认背景" aria-label="恢复默认背景"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg><span>恢复默认</span></button>
-        <button class="text-button" id="backgroundButton" type="button" title="选择背景图片" aria-label="选择背景图片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m3 17 5-5 4 4 3-3 6 5"/></svg></button>
-        <input id="backgroundInput" type="file" accept="image/*" hidden>
       </div>
     </header>
     <main>
       <div class="search-area">
         <form id="searchForm" class="search-shell" role="search" autocomplete="off">
           <div class="engine-wrap">
-            <button class="engine" id="engineButton" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="engineMenu"><span id="engineLabel">百度</span><svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 5 5 5-5"/></svg></button>
+            <button class="engine" id="engineButton" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="engineMenu"><span id="engineLabel">Google</span><svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 5 5 5-5"/></svg></button>
             <div class="engine-menu" id="engineMenu" role="listbox" aria-label="搜索引擎" hidden></div>
           </div>
           <input class="query" id="query" name="q" type="search" placeholder="" aria-label="搜索内容" enterkeyhint="search" autofocus>
@@ -75,29 +83,41 @@
         </form>
       </div>
     </main>
-    <footer><span class="status" id="status" role="status" aria-live="polite"></span></footer>
+  </div>
+  <div class="settings-dock" id="settingsDock">
+    <div class="settings-options" id="settingsOptions" aria-hidden="true" inert>
+      <button class="settings-option" id="backgroundButton" type="button" title="背景图片" aria-label="背景图片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m3 17 5-5 4 4 3-3 6 5"/></svg></button>
+      <button class="settings-option" id="colorButton" type="button" title="主题颜色" aria-label="主题颜色"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18h1.5a2.5 2.5 0 0 0 2.1-3.9 2 2 0 0 1 1.7-3.1H19a2 2 0 0 0 2-2A9 9 0 0 0 12 3Z"/><circle cx="7.5" cy="11" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="6.7" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="17.5" cy="11" r="1" fill="currentColor" stroke="none"/></svg></button>
+    </div>
+    <button class="settings-button" id="settingsButton" type="button" title="设置" aria-label="设置" aria-expanded="false" aria-controls="settingsOptions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.4 2.8h3.2l.5 2.1a7.6 7.6 0 0 1 1.6.7l1.9-1.1 2.3 2.3-1.1 1.9c.3.5.5 1 .7 1.6l2.1.5v3.2l-2.1.5a7.6 7.6 0 0 1-.7 1.6l1.1 1.9-2.3 2.3-1.9-1.1c-.5.3-1 .5-1.6.7l-.5 2.1h-3.2l-.5-2.1a7.6 7.6 0 0 1-1.6-.7l-1.9 1.1-2.3-2.3 1.1-1.9a7.6 7.6 0 0 1-.7-1.6l-2.1-.5v-3.2l2.1-.5c.2-.6.4-1.1.7-1.6L4.1 6.8l2.3-2.3 1.9 1.1c.5-.3 1-.5 1.6-.7l.5-2.1Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    <input id="backgroundInput" type="file" accept="image/*" hidden>
+    <input class="picker-input" id="colorInput" type="color" aria-label="选择主题颜色" tabindex="-1">
   </div>
   <script>
     (() => {
       'use strict';
       const engines = [
-        { id: 'baidu', name: '百度', url: 'https://www.baidu.com/s?wd=' },
-        { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q=' },
         { id: 'google', name: 'Google', url: 'https://www.google.com/search?q=' },
-        { id: 'duckduckgo', name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=' },
-        { id: 'sogou', name: '搜狗', url: 'https://www.sogou.com/web?query=' }
+        { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q=' },
+        { id: 'baidu', name: 'Baidu', url: 'https://www.baidu.com/s?wd=' }
       ];
       const $ = id => document.getElementById(id);
-      const scene = $('scene'), menu = $('engineMenu'), button = $('engineButton'), label = $('engineLabel'), status = $('status');
-      let engineId = 'baidu', backgroundUrl = null, statusTimer;
+      const scene = $('scene'), menu = $('engineMenu'), button = $('engineButton'), label = $('engineLabel');
+      const settingsDock = $('settingsDock'), settingsOptions = $('settingsOptions'), settingsButton = $('settingsButton'), colorInput = $('colorInput');
+      let engineId = 'google', backgroundUrl = null;
       try { const saved = localStorage.getItem('startpage.engine'); if (engines.some(e => e.id === saved)) engineId = saved; } catch (_) {}
-      const say = message => { status.textContent = message; clearTimeout(statusTimer); if (message) statusTimer = setTimeout(() => status.textContent = '', 4000); };
       const closeMenu = () => { menu.hidden = true; button.setAttribute('aria-expanded', 'false'); };
+      const setSettingsOpen = open => {
+        settingsDock.classList.toggle('open', open);
+        settingsButton.setAttribute('aria-expanded', String(open));
+        settingsOptions.setAttribute('aria-hidden', String(!open));
+        settingsOptions.inert = !open;
+      };
       const chooseEngine = id => {
         engineId = id;
         label.textContent = engines.find(e => e.id === id).name;
         [...menu.children].forEach(option => option.setAttribute('aria-selected', String(option.dataset.id === id)));
-        try { localStorage.setItem('startpage.engine', id); } catch (_) { say('当前浏览器无法保存搜索引擎'); }
+        try { localStorage.setItem('startpage.engine', id); } catch (error) { console.warn('无法保存搜索引擎', error); }
         closeMenu(); $('query').focus();
       };
       for (const engine of engines) {
@@ -109,9 +129,15 @@
         menu.appendChild(option);
       }
       label.textContent = engines.find(e => e.id === engineId).name;
-      button.addEventListener('click', () => { menu.hidden = !menu.hidden; button.setAttribute('aria-expanded', String(!menu.hidden)); if (!menu.hidden) menu.querySelector('[aria-selected="true"]').focus(); });
+      button.addEventListener('click', () => { setSettingsOpen(false); menu.hidden = !menu.hidden; button.setAttribute('aria-expanded', String(!menu.hidden)); if (!menu.hidden) menu.querySelector('[aria-selected="true"]').focus(); });
       document.addEventListener('click', event => { if (!event.target.closest('.engine-wrap')) closeMenu(); });
-      document.addEventListener('keydown', event => { if (event.key === 'Escape') { closeMenu(); button.focus(); } });
+      settingsButton.addEventListener('click', () => { closeMenu(); setSettingsOpen(!settingsDock.classList.contains('open')); });
+      document.addEventListener('click', event => { if (!event.target.closest('.settings-dock')) setSettingsOpen(false); });
+      document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        if (settingsDock.classList.contains('open')) { setSettingsOpen(false); settingsButton.focus(); }
+        else if (!menu.hidden) { closeMenu(); button.focus(); }
+      });
       $('searchForm').addEventListener('submit', event => {
         event.preventDefault(); const query = $('query').value.trim(); if (!query) { $('query').focus(); return; }
         window.location.assign(engines.find(e => e.id === engineId).url + encodeURIComponent(query));
@@ -133,6 +159,10 @@
         tx.onerror = () => { db.close(); reject(tx.error); };
         tx.onabort = () => { db.close(); reject(tx.error); };
       });
+      const applyAccent = color => {
+        document.documentElement.style.setProperty('--accent', color);
+        colorInput.value = color;
+      };
       const showBackground = blob => {
         if (backgroundUrl) URL.revokeObjectURL(backgroundUrl);
         backgroundUrl = blob ? URL.createObjectURL(blob) : null;
@@ -140,21 +170,39 @@
         scene.classList.toggle('custom', Boolean(blob));
         $('resetButton').classList.toggle('visible', Boolean(blob));
       };
-      openDb().then(db => dbRequest(db, 'readonly', store => store.get('background'))).then(blob => { if (blob) showBackground(blob); }).catch(() => say('当前浏览器无法读取背景图片'));
-      $('backgroundButton').addEventListener('click', () => $('backgroundInput').click());
+      colorInput.value = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+      try { const saved = localStorage.getItem('startpage.accent'); if (/^#[0-9a-f]{6}$/i.test(saved)) applyAccent(saved); } catch (_) {}
+      openDb().then(db => dbRequest(db, 'readonly', store => store.get('background'))).then(blob => { if (blob) showBackground(blob); }).catch(error => console.warn('无法读取背景图片', error));
+      $('backgroundButton').addEventListener('click', () => { setSettingsOpen(false); settingsButton.focus(); $('backgroundInput').click(); });
+      $('colorButton').addEventListener('click', () => {
+        setSettingsOpen(false); settingsButton.focus();
+        try { colorInput.showPicker(); } catch (_) { colorInput.click(); }
+      });
       $('backgroundInput').addEventListener('change', async event => {
         const file = event.target.files[0]; if (!file) return;
         event.target.value = '';
-        if (!file.type.startsWith('image/')) { say('请选择图片文件'); return; }
+        if (!file.type.startsWith('image/')) return;
         try {
           const db = await openDb();
           await dbRequest(db, 'readwrite', store => store.put(file, 'background'));
-          showBackground(file); say('背景已保存');
-        } catch (_) { say('保存失败，请检查浏览器存储权限'); }
+          showBackground(file);
+        } catch (error) { console.warn('无法保存背景图片', error); }
+      });
+      colorInput.addEventListener('input', event => applyAccent(event.target.value));
+      colorInput.addEventListener('change', event => {
+        const color = event.target.value;
+        applyAccent(color);
+        try {
+          localStorage.setItem('startpage.accent', color);
+        } catch (error) { console.warn('无法保存主题颜色', error); }
       });
       $('resetButton').addEventListener('click', async () => {
-        try { const db = await openDb(); await dbRequest(db, 'readwrite', store => store.delete('background')); showBackground(null); say('已恢复默认背景'); }
-        catch (_) { say('恢复失败，请检查浏览器存储权限'); }
+        try {
+          const db = await openDb();
+          await dbRequest(db, 'readwrite', store => store.delete('background'));
+          showBackground(null);
+        }
+        catch (error) { console.warn('无法恢复默认背景', error); }
       });
       window.addEventListener('pagehide', () => { if (backgroundUrl) URL.revokeObjectURL(backgroundUrl); });
     })();
