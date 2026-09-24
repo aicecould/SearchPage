@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>新标签页</title>
+  <style>
+    :root { font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; color: #fff; background: #152332; }
+    * { box-sizing: border-box; }
+    body { min-width: 320px; min-height: 100vh; min-height: 100dvh; margin: 0; overflow: hidden; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .scene, .shade, .grain { position: fixed; inset: 0; pointer-events: none; }
+    .scene { background: radial-gradient(ellipse 62% 46% at 79% 13%, #f3b48b 0%, #cc8f88 33%, transparent 68%), linear-gradient(155deg, #263f52 3%, #6f7787 43%, #d8aa91 73%, #776c7d 100%); background-position: center; background-size: cover; transform: scale(1.025); transition: background-image .5s ease; }
+    .scene::before, .scene::after { content: ""; position: absolute; inset: 0; }
+    .scene::before { background: #263f50; clip-path: polygon(0 66%, 12% 59%, 23% 64%, 38% 49%, 51% 59%, 65% 42%, 78% 56%, 91% 45%, 100% 53%, 100% 100%, 0 100%); opacity: .6; }
+    .scene::after { background: #152c39; clip-path: polygon(0 79%, 16% 68%, 28% 77%, 40% 65%, 56% 76%, 70% 63%, 84% 70%, 100% 59%, 100% 100%, 0 100%); opacity: .78; }
+    .scene.custom::before, .scene.custom::after { display: none; }
+    .shade { background: linear-gradient(180deg, rgba(6, 18, 29, .39), rgba(5, 18, 29, .04) 27%, rgba(6, 18, 29, .09) 62%, rgba(5, 18, 29, .56)); }
+    .grain { opacity: .18; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.25'/%3E%3C/svg%3E"); }
+    .page { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; padding: 34px clamp(24px, 5vw, 72px) 30px; }
+    header, footer { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+    .top-actions { display: flex; align-items: center; gap: 12px; }
+    .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid rgba(255,255,255,.3); border-radius: 100px; color: #fff; background: rgba(20,32,43,.18); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 10px 15px; font-size: 12px; font-weight: 600; letter-spacing: .04em; transition: background .2s, border-color .2s, transform .2s; }
+    .text-button:hover { background: rgba(20,32,43,.38); border-color: rgba(255,255,255,.6); transform: translateY(-1px); }
+    .text-button:focus-visible, .engine:focus-visible, .go:focus-visible, .query:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+    .text-button svg { width: 16px; height: 16px; }
+    #resetButton { display: none; }
+    #resetButton.visible { display: inline-flex; }
+    main { flex: 1; display: flex; align-items: center; justify-content: center; padding-bottom: 4vh; }
+    .search-area { width: min(100%, 740px); animation: arrive .7s cubic-bezier(.2,.8,.2,1) both; }
+    .search-shell { display: flex; align-items: center; width: 100%; height: 78px; padding: 9px; border: 1px solid rgba(255,255,255,.43); border-radius: 21px; background: rgba(250,250,249,.93); box-shadow: 0 20px 60px rgba(7,19,30,.2), 0 3px 10px rgba(7,19,30,.09); color: #1f2b31; transition: box-shadow .2s, transform .2s; }
+    .search-shell:focus-within { box-shadow: 0 25px 70px rgba(7,19,30,.29), 0 0 0 4px rgba(255,255,255,.22); transform: translateY(-2px); }
+    .engine-wrap { position: relative; flex: none; }
+    .engine { height: 58px; min-width: 122px; border: 0; border-radius: 13px; background: #e7eae8; color: #273a3c; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 15px; font-size: 13px; font-weight: 700; }
+    .engine:hover { background: #dce1de; }
+    .chevron { width: 14px; height: 14px; transition: transform .2s; }
+    .engine[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+    .engine-menu { position: absolute; left: 0; bottom: calc(100% + 13px); width: 180px; padding: 7px; border: 1px solid rgba(255,255,255,.55); border-radius: 15px; background: rgba(248,249,247,.97); box-shadow: 0 16px 42px rgba(9,26,34,.24); color: #263438; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); }
+    .engine-menu[hidden] { display: none; }
+    .engine-option { width: 100%; display: flex; align-items: center; justify-content: space-between; min-height: 39px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; color: inherit; text-align: left; font-size: 13px; }
+    .engine-option:hover, .engine-option[aria-selected="true"] { background: #e7ece9; }
+    .engine-option[aria-selected="true"]::after { content: "✓"; color: #38695b; }
+    .query { flex: 1; min-width: 0; height: 100%; padding: 0 20px; border: 0; outline: none; background: transparent; color: #263438; font-size: 17px; font-weight: 400; }
+    .query::placeholder { color: #87918f; opacity: 1; }
+    .go { flex: none; width: 56px; height: 56px; display: grid; place-items: center; border: 0; border-radius: 13px; background: #203e41; color: white; transition: background .2s, transform .2s; }
+    .go:hover { background: #315e5c; transform: translateX(2px); }
+    .go svg { width: 21px; height: 21px; }
+    footer { min-height: 20px; }
+    .status { min-height: 18px; color: #fff; font-size: 12px; text-align: right; text-shadow: 0 1px 8px #152332; }
+    @keyframes arrive { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 600px) { .page { padding: 22px 20px; } .text-button { padding: 10px 12px; } .text-button span { display: none; } .search-shell { height: 68px; padding: 7px; border-radius: 17px; } .engine { height: 52px; min-width: 91px; gap: 5px; padding: 0 10px; font-size: 12px; } .query { padding: 0 11px; font-size: 15px; } .go { width: 50px; height: 50px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <div class="scene" id="scene" aria-hidden="true"></div><div class="shade" aria-hidden="true"></div><div class="grain" aria-hidden="true"></div>
+  <div class="page">
+    <header>
+      <div class="top-actions">
+        <button class="text-button" id="resetButton" type="button" title="恢复默认背景" aria-label="恢复默认背景"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg><span>恢复默认</span></button>
+        <button class="text-button" id="backgroundButton" type="button" title="选择背景图片" aria-label="选择背景图片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m3 17 5-5 4 4 3-3 6 5"/></svg></button>
+        <input id="backgroundInput" type="file" accept="image/*" hidden>
+      </div>
+    </header>
+    <main>
+      <div class="search-area">
+        <form id="searchForm" class="search-shell" role="search" autocomplete="off">
+          <div class="engine-wrap">
+            <button class="engine" id="engineButton" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="engineMenu"><span id="engineLabel">百度</span><svg class="chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 5 5 5-5"/></svg></button>
+            <div class="engine-menu" id="engineMenu" role="listbox" aria-label="搜索引擎" hidden></div>
+          </div>
+          <input class="query" id="query" name="q" type="search" placeholder="" aria-label="搜索内容" enterkeyhint="search" autofocus>
+          <button class="go" type="submit" aria-label="搜索"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></button>
+        </form>
+      </div>
+    </main>
+    <footer><span class="status" id="status" role="status" aria-live="polite"></span></footer>
+  </div>
+  <script>
+    (() => {
+      'use strict';
+      const engines = [
+        { id: 'baidu', name: '百度', url: 'https://www.baidu.com/s?wd=' },
+        { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q=' },
+        { id: 'google', name: 'Google', url: 'https://www.google.com/search?q=' },
+        { id: 'duckduckgo', name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=' },
+        { id: 'sogou', name: '搜狗', url: 'https://www.sogou.com/web?query=' }
+      ];
+      const $ = id => document.getElementById(id);
+      const scene = $('scene'), menu = $('engineMenu'), button = $('engineButton'), label = $('engineLabel'), status = $('status');
+      let engineId = 'baidu', backgroundUrl = null, statusTimer;
+      try { const saved = localStorage.getItem('startpage.engine'); if (engines.some(e => e.id === saved)) engineId = saved; } catch (_) {}
+      const say = message => { status.textContent = message; clearTimeout(statusTimer); if (message) statusTimer = setTimeout(() => status.textContent = '', 4000); };
+      const closeMenu = () => { menu.hidden = true; button.setAttribute('aria-expanded', 'false'); };
+      const chooseEngine = id => {
+        engineId = id;
+        label.textContent = engines.find(e => e.id === id).name;
+        [...menu.children].forEach(option => option.setAttribute('aria-selected', String(option.dataset.id === id)));
+        try { localStorage.setItem('startpage.engine', id); } catch (_) { say('当前浏览器无法保存搜索引擎'); }
+        closeMenu(); $('query').focus();
+      };
+      for (const engine of engines) {
+        const option = document.createElement('button');
+        option.type = 'button'; option.className = 'engine-option'; option.role = 'option'; option.dataset.id = engine.id;
+        option.textContent = engine.name;
+        option.setAttribute('aria-selected', String(engine.id === engineId));
+        option.addEventListener('click', () => chooseEngine(engine.id));
+        menu.appendChild(option);
+      }
+      label.textContent = engines.find(e => e.id === engineId).name;
+      button.addEventListener('click', () => { menu.hidden = !menu.hidden; button.setAttribute('aria-expanded', String(!menu.hidden)); if (!menu.hidden) menu.querySelector('[aria-selected="true"]').focus(); });
+      document.addEventListener('click', event => { if (!event.target.closest('.engine-wrap')) closeMenu(); });
+      document.addEventListener('keydown', event => { if (event.key === 'Escape') { closeMenu(); button.focus(); } });
+      $('searchForm').addEventListener('submit', event => {
+        event.preventDefault(); const query = $('query').value.trim(); if (!query) { $('query').focus(); return; }
+        window.location.assign(engines.find(e => e.id === engineId).url + encodeURIComponent(query));
+      });
+
+      const openDb = () => new Promise((resolve, reject) => {
+        if (!('indexedDB' in window)) { reject(new Error('IndexedDB unavailable')); return; }
+        const request = indexedDB.open('startpage', 1);
+        request.onupgradeneeded = () => request.result.createObjectStore('preferences');
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      const dbRequest = (db, mode, action) => new Promise((resolve, reject) => {
+        const tx = db.transaction('preferences', mode), store = tx.objectStore('preferences');
+        let result;
+        const request = action(store);
+        request.onsuccess = () => { result = request.result; };
+        tx.oncomplete = () => { db.close(); resolve(result); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
+        tx.onabort = () => { db.close(); reject(tx.error); };
+      });
+      const showBackground = blob => {
+        if (backgroundUrl) URL.revokeObjectURL(backgroundUrl);
+        backgroundUrl = blob ? URL.createObjectURL(blob) : null;
+        scene.style.backgroundImage = blob ? `url("${backgroundUrl}")` : '';
+        scene.classList.toggle('custom', Boolean(blob));
+        $('resetButton').classList.toggle('visible', Boolean(blob));
+      };
+      openDb().then(db => dbRequest(db, 'readonly', store => store.get('background'))).then(blob => { if (blob) showBackground(blob); }).catch(() => say('当前浏览器无法读取背景图片'));
+      $('backgroundButton').addEventListener('click', () => $('backgroundInput').click());
+      $('backgroundInput').addEventListener('change', async event => {
+        const file = event.target.files[0]; if (!file) return;
+        event.target.value = '';
+        if (!file.type.startsWith('image/')) { say('请选择图片文件'); return; }
+        try {
+          const db = await openDb();
+          await dbRequest(db, 'readwrite', store => store.put(file, 'background'));
+          showBackground(file); say('背景已保存');
+        } catch (_) { say('保存失败，请检查浏览器存储权限'); }
+      });
+      $('resetButton').addEventListener('click', async () => {
+        try { const db = await openDb(); await dbRequest(db, 'readwrite', store => store.delete('background')); showBackground(null); say('已恢复默认背景'); }
+        catch (_) { say('恢复失败，请检查浏览器存储权限'); }
+      });
+      window.addEventListener('pagehide', () => { if (backgroundUrl) URL.revokeObjectURL(backgroundUrl); });
+    })();
+  </script>
+</body>
+</html>
