@@ -13,20 +13,13 @@
     button, input { font: inherit; }
     button { cursor: pointer; }
     .scene, .shade, .grain { position: fixed; inset: 0; pointer-events: none; }
-    .scene { background: #fff; transition: background-image .5s ease; }
+    .scene { background: #fff center / cover no-repeat; transition: background-image .5s ease; }
     .scene::before, .scene::after { display: none; }
     .scene.custom::before, .scene.custom::after { display: none; }
     .shade { display: none; }
     .grain { display: none; }
     .page { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; padding: 34px clamp(24px, 5vw, 72px) 30px; }
-    header { display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
-    .top-actions { display: flex; align-items: center; gap: 12px; }
-    .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 100px; color: var(--accent); background: rgba(255,255,255,.86); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); padding: 10px 15px; font-size: 12px; font-weight: 600; letter-spacing: .04em; transition: background .2s, border-color .2s, transform .2s; }
-    .text-button:hover { background: color-mix(in srgb, var(--accent) 7%, white); border-color: color-mix(in srgb, var(--accent) 60%, transparent); transform: translateY(-1px); }
-    .text-button:focus-visible, .engine:focus-visible, .go:focus-visible, .settings-button:focus-visible, .settings-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-    .text-button svg { width: 16px; height: 16px; }
-    #resetButton { display: none; }
-    #resetButton.visible { display: inline-flex; }
+    .engine:focus-visible, .go:focus-visible, .settings-button:focus-visible, .settings-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
     .settings-dock { position: fixed; z-index: 2; right: clamp(24px, 5vw, 72px); bottom: 30px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
     .settings-options { display: flex; flex-direction: column; gap: 12px; opacity: 0; visibility: hidden; transform: translateY(12px); pointer-events: none; transition: opacity .22s ease, transform .22s ease, visibility 0s linear .22s; }
     .settings-dock.open .settings-options { opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto; transition-delay: 0s; }
@@ -59,18 +52,13 @@
     .go:hover { background: color-mix(in srgb, var(--accent) 85%, white); transform: translateX(2px); }
     .go svg { width: 21px; height: 21px; }
     @keyframes arrive { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-    @media (max-width: 600px) { .page { padding: 22px 20px; } .text-button { padding: 10px 12px; } .text-button span { display: none; } .search-shell { height: 60px; padding: 7px; border-radius: 16px; } .engine { height: 44px; min-width: 91px; gap: 5px; padding: 0 10px; font-size: 12px; } .query { padding: 0 11px; font-size: 15px; } .go { width: 44px; height: 44px; } .settings-dock { right: 20px; bottom: 22px; } }
+    @media (max-width: 600px) { .page { padding: 22px 20px; } .search-shell { height: 60px; padding: 7px; border-radius: 16px; } .engine { height: 44px; min-width: 91px; gap: 5px; padding: 0 10px; font-size: 12px; } .query { padding: 0 11px; font-size: 15px; } .go { width: 44px; height: 44px; } .settings-dock { right: 20px; bottom: 22px; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
   </style>
 </head>
 <body>
   <div class="scene" id="scene" aria-hidden="true"></div><div class="shade" aria-hidden="true"></div><div class="grain" aria-hidden="true"></div>
   <div class="page">
-    <header>
-      <div class="top-actions">
-        <button class="text-button" id="resetButton" type="button" title="恢复默认背景" aria-label="恢复默认背景"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg><span>恢复默认</span></button>
-      </div>
-    </header>
     <main>
       <div class="search-area">
         <form id="searchForm" class="search-shell" role="search" autocomplete="off">
@@ -101,6 +89,7 @@
         { id: 'bing', name: 'Bing', url: 'https://www.bing.com/search?q=' },
         { id: 'baidu', name: 'Baidu', url: 'https://www.baidu.com/s?wd=' }
       ];
+      const MAX_BACKGROUND_BYTES = 50 * 1024 * 1024;
       const $ = id => document.getElementById(id);
       const scene = $('scene'), menu = $('engineMenu'), button = $('engineButton'), label = $('engineLabel');
       const settingsDock = $('settingsDock'), settingsOptions = $('settingsOptions'), settingsButton = $('settingsButton'), colorInput = $('colorInput');
@@ -172,7 +161,6 @@
         backgroundUrl = blob ? URL.createObjectURL(blob) : null;
         scene.style.backgroundImage = blob ? `url("${backgroundUrl}")` : '';
         scene.classList.toggle('custom', Boolean(blob));
-        $('resetButton').classList.toggle('visible', Boolean(blob));
       };
       let initialAccent = defaultAccent;
       try { const saved = localStorage.getItem('startpage.accent'); if (/^#[0-9a-f]{6}$/i.test(saved)) initialAccent = saved; } catch (_) {}
@@ -187,6 +175,7 @@
         const file = event.target.files[0]; if (!file) return;
         event.target.value = '';
         if (!file.type.startsWith('image/')) return;
+        if (file.size > MAX_BACKGROUND_BYTES) { console.warn('背景图片不能超过 50 MB'); return; }
         try {
           const db = await openDb();
           await dbRequest(db, 'readwrite', store => store.put(file, 'background'));
@@ -200,14 +189,6 @@
         try {
           localStorage.setItem('startpage.accent', color);
         } catch (error) { console.warn('无法保存主题颜色', error); }
-      });
-      $('resetButton').addEventListener('click', async () => {
-        try {
-          const db = await openDb();
-          await dbRequest(db, 'readwrite', store => store.delete('background'));
-          showBackground(null);
-        }
-        catch (error) { console.warn('无法恢复默认背景', error); }
       });
       window.addEventListener('pagehide', () => { if (backgroundUrl) URL.revokeObjectURL(backgroundUrl); });
     })();
